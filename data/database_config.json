@@ -1,0 +1,6 @@
+{
+    "driver": "ODBC Driver 17 for SQL Server",
+    "server": "OSCAR\\SQLEXPRESS",
+    "database": "DATATEL_SOLUCIONES",
+    "trusted_connection": "yes"
+}
