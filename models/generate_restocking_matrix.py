@@ -71,7 +71,7 @@ class RestockingMatrix:
             # Modelo ARIMA
             if not train.empty:
                 model = ARIMA(train, order=(5, 1, 0))
-                print(model)
+                #print(model)
                 fitted_model = model.fit()
                 forecast = fitted_model.forecast(steps=len(test))
                 # Calcular métricas de error si hay datos de prueba
