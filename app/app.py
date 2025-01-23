@@ -28,7 +28,13 @@ def apply_colors(row):
     else:
         return ['background-color: white; color: black' for _ in row]
 
-
+def simple_logout():
+    """
+    Cierra la sesión limpiando el estado de la sesión y redirigiendo al usuario.
+    """
+    st.session_state.clear()  # Limpia toda la sesión
+    st.write('<script>window.location.href = "/";</script>', unsafe_allow_html=True)
+    st.rerun()  # Reinicia la aplicación para aplicar los cambios
 
 def authenticate_user():
     """
@@ -47,17 +53,16 @@ def authenticate_user():
                 st.session_state["token"] = token
             except Exception as e:
                 st.error(f"Error al refrescar el token: {e}")
+                st.session_state.clear()  # Limpia la sesión si hay error
                 return False
 
         # Obtener información del usuario
         user_info = oauth_manager.get_user_info(token)
         st.sidebar.success(f"Bienvenido, {user_info['email']}!")
         
-        # Botón para cerrar sesión
         if st.sidebar.button("Cerrar sesión"):
-            st.session_state.clear()  # Limpia toda la sesión
-            st.experimental_set_query_params()  # Elimina los parámetros de la URL
-            st.rerun()  # Recarga la app
+            simple_logout()
+
         return True
 
     # Si no hay token, iniciar autenticación
@@ -68,7 +73,8 @@ def authenticate_user():
             code = query_params["code"]
             token = oauth_manager.fetch_token(code)
             st.session_state["token"] = token
-            st.rerun()  # Redirigir tras obtener el token
+            st.write('<script>window.location.href = "/";</script>', unsafe_allow_html=True)  # Redirigir después de obtener el token
+            st.rerun()
         except Exception as e:
             st.error(f"Error en la autenticación: {e}")
             return False
@@ -78,13 +84,12 @@ def authenticate_user():
     st.markdown(f"[Inicia sesión con Google]({auth_url})")
     return False
 
-
 def main():
     """
     Configura el Dashboard de Inventarios.
     """
     # Configuración inicial de la página
-    st.set_page_config(page_title="Dashboard", layout="wide")
+    st.set_page_config(page_title="Datatel App", layout="wide")
     
     # Autenticación
     st.sidebar.title("Autenticación")
@@ -150,7 +155,84 @@ def main():
     except Exception as e:
         st.error(f"Error al generar la predicción: {e}")
 
-    # Continúa con las otras secciones actuales...
+    # Sección: Predicción de Reposición por Producto
+    st.header("Predicción de Reposición por Producto")
+    try:
+        restocking_by_product = PredictRestockingByProduct()
+        product_restocking_df = restocking_by_product.predict_restocking_by_product()
 
+        if product_restocking_df.empty:
+            st.warning("No hay datos suficientes para generar predicciones.")
+        else:
+            # Crear una columna para el tooltip con ID y Nombre del Producto
+            product_restocking_df['Producto'] = (
+                product_restocking_df['ID_Producto'].astype(str) + " - " + product_restocking_df['Producto']
+            )
+
+            # Mostrar el gráfico
+            st.subheader("Cantidad Recomendada de Reposición por Producto")
+            fig = px.bar(
+                product_restocking_df,
+                x='ID_Producto',  # Muestra solo el ID en el eje X
+                y='Cantidad',
+                color='Cantidad',
+                color_continuous_scale='Blues',
+                labels={'ID_Producto': 'Código del Producto', 'Cantidad': 'Cantidad de Reposición'},
+                title="Cantidad Recomendada de Reposición",
+                hover_data={'Cantidad': True,'Producto': True,'ID_Producto': False }  # Incluye nombre del producto en el tooltip
+            )
+            fig.update_layout(
+                xaxis_title="Código del Producto",
+                yaxis_title="Cantidad Recomendada de Reposición",
+                showlegend=False,
+                coloraxis_colorbar=dict(
+                    title="Cantidad",
+                    ticks="outside"
+                )
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error al generar la predicción por producto: {e}")
+
+    
+    # Sección: Predicción Futura de Reposición
+    st.header("Predicción Futura de Reposición")
+    try:
+        future_prediction = PredictionByDate()
+
+        # Obtener opciones de productos en formato "ID - Nombre"
+        product_options = future_prediction.get_product_options()
+        product_options_list = product_options['Producto_Opcion'].tolist()
+        product_id_mapping = product_options.set_index('Producto_Opcion')['ID_Producto'].to_dict()
+
+        # Selector de producto
+        selected_product_option = st.selectbox("Selecciona un producto para predecir:", product_options_list)
+
+        # Obtener el ID real del producto
+        selected_product_id = product_id_mapping[selected_product_option]
+
+        # Generar predicción futura para el producto seleccionado
+        forecast_df = future_prediction.predict_future(selected_product_id)
+
+        if forecast_df.empty:
+            st.warning("No hay datos suficientes para generar predicciones.")
+        else:
+            st.subheader(f"Predicción Futura para el Producto: {selected_product_option}")
+            fig = px.line(
+                forecast_df,
+                x='Fecha',
+                y='Predicción',
+                labels={'Fecha': 'Fecha', 'Predicción': 'Cantidad Predicha'},
+                title="Predicción de Reposición Futura"
+            )
+            fig.update_layout(
+                xaxis_title="Fecha",
+                yaxis_title="Cantidad Predicha",
+                legend_title="Predicción"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error al generar la predicción futura: {e}")
+        
 if __name__ == "__main__":
     main()
