@@ -1,14 +1,1 @@
-oauth:
-  client_id: "247975005025-aklsg50fe65akknseemdtlaffb271gom.apps.googleusercontent.com"
-  client_secret: "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"
-  redirect_uri: "http://localhost:8501"
-  provider:
-    auth_url: "https://accounts.google.com/o/oauth2/auth"
-    token_url: "https://oauth2.googleapis.com/token"
-    user_info_url: "https://www.googleapis.com/oauth2/v1/userinfo"
-    revoke_url: "https://oauth2.googleapis.com/revoke"
-  allowed_origins:
-    - "http://localhost"
-    - "http://localhost:8501"
-    - "https://calificacionesstudents.firebaseapp.com"
-  scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+
