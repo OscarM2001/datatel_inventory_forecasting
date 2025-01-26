@@ -5,12 +5,29 @@ from models.generate_restocking_matrix import RestockingMatrix
 from models.compare_sales_and_predictions import CompareSalesAndPredictions
 from models.predict_restocking_by_product import PredictRestockingByProduct
 from models.predict_by_date import PredictionByDate
-
+import requests
 
 class Dashboard:
     """
     Clase para manejar la visualización y la interacción del Dashboard de Inventarios.
     """
+
+    @staticmethod
+    def fetch_inventory():
+        response = requests.get("http://127.0.0.1:8000/inventory/all")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error("Error al obtener los datos de inventario")
+            return []
+
+    @staticmethod
+    def render_dashboard():
+        st.title("Dashboard de Inventarios")
+        inventory_data = Dashboard.fetch_inventory()
+        if inventory_data:
+            st.write("Datos de inventario obtenidos desde la API:")
+            st.dataframe(inventory_data)
 
     @staticmethod
     def apply_colors(row):
